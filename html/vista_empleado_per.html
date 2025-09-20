@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resumen Semanal Personal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background: #f9f9f9; }
+        h2 { color: #333; }
+        .filter { margin-bottom: 20px; }
+        table { border-collapse: collapse; width: 100%; background: #fff; }
+        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: center; }
+        th { background: #f0f0f0; }
+        tr:nth-child(even) { background: #f7f7f7; }
+    </style>
+</head>
+<body>
+    <h2>Resumen Semanal de Empleado: Juan Pérez</h2>
+    <div class="filter">
+        <label for="fechaInicio">Desde: </label>
+        <input type="date" id="fechaInicio">
+        <label for="fechaFin">Hasta: </label>
+        <input type="date" id="fechaFin">
+        <button onclick="filtrar()">Filtrar</button>
+        <button onclick="resetear()">Resetear</button>
+        <button onclick="descargarPDF()" style="margin-left: 20px;">Descargar PDF</button>
+    </div>
+    <table id="tablaResumen">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Hora de Entrada</th>
+                <th>Hora de Salida</th>
+                <th>Horas Trabajadas</th>
+                <th>Pago del Día</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Registros ficticios -->
+        </tbody>
+        <tfoot>
+            <tr>
+                <th>Total</th>
+                <th></th>
+                <th></th>
+                <th id="totalHoras"></th>
+                <th id="totalPago"></th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <script>
+        // Datos ficticios
+        const registros = [
+            { fecha: '2024-06-10', entrada: '08:00', salida: '16:00', horas: 8, pago: 640 },
+            { fecha: '2024-06-11', entrada: '08:30', salida: '16:00', horas: 7.5, pago: 600 },
+            { fecha: '2024-06-12', entrada: '09:00', salida: '17:00', horas: 8, pago: 640 },
+            { fecha: '2024-06-13', entrada: '08:00', salida: '16:30', horas: 8.5, pago: 680 },
+            { fecha: '2024-06-14', entrada: '09:00', salida: '16:00', horas: 7, pago: 560 },
+            { fecha: '2024-06-15', entrada: '08:00', salida: '16:00', horas: 8, pago: 640 },
+            { fecha: '2024-06-16', entrada: '08:30', salida: '16:00', horas: 7.5, pago: 600 }
+        ];
+
+        let registrosFiltrados = [...registros];
+
+        function mostrarTabla(datos) {
+            const tbody = document.querySelector('#tablaResumen tbody');
+            tbody.innerHTML = '';
+            let totalHoras = 0, totalPago = 0;
+            datos.forEach(r => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${r.fecha}</td>
+                        <td>${r.entrada}</td>
+                        <td>${r.salida}</td>
+                        <td>${r.horas}</td>
+                        <td>$${r.pago}</td>
+                    </tr>
+                `;
+                totalHoras += r.horas;
+                totalPago += r.pago;
+            });
+            document.getElementById('totalHoras').textContent = totalHoras;
+            document.getElementById('totalPago').textContent = `$${totalPago}`;
+        }
+
+        function filtrar() {
+            const inicio = document.getElementById('fechaInicio').value;
+            const fin = document.getElementById('fechaFin').value;
+            registrosFiltrados = registros.filter(r => {
+                return (!inicio || r.fecha >= inicio) && (!fin || r.fecha <= fin);
+            });
+            mostrarTabla(registrosFiltrados);
+        }
+
+        function resetear() {
+            document.getElementById('fechaInicio').value = '';
+            document.getElementById('fechaFin').value = '';
+            registrosFiltrados = [...registros];
+            mostrarTabla(registrosFiltrados);
+        }
+
+        // Inicializar tabla
+        mostrarTabla(registrosFiltrados);
+
+        // Definir la función descargarPDF para evitar errores
+        function descargarPDF() {
+            alert('Función de descarga de PDF aún no implementada.');
+        }
+    </script>
+</body>
+</html>

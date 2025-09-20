@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Vista Individual del Empleado</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        .container { max-width: 700px; margin: auto; }
+        h2 { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background: #f4f4f4; }
+        .btn { padding: 8px 16px; background: #3498db; color: #fff; border: none; cursor: pointer; }
+        .btn:hover { background: #2980b9; }
+        .info { margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Vista Individual del Empleado</h2>
+    <div>
+        <label for="empleado">Selecciona un empleado:</label>
+        <select id="empleado">
+            <option value="1">Juan Pérez</option>
+            <option value="2">María López</option>
+            <option value="3">Carlos Ruiz</option>
+        </select>
+        <button class="btn" onclick="mostrarDatos()">Ver Horarios</button>
+    </div>
+    <div class="info" id="infoEmpleado" style="display:none;">
+        <h3 id="nombreEmpleado"></h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Día</th>
+                    <th>Entrada</th>
+                    <th>Salida</th>
+                    <th>Horas Trabajadas</th>
+                </tr>
+            </thead>
+            <tbody id="tablaHorarios"></tbody>
+        </table>
+        <p><strong>Total de horas trabajadas en la semana:</strong> <span id="totalHoras"></span></p>
+    </div>
+</div>
+<script>
+const empleados = {
+    1: {
+        nombre: "Juan Pérez",
+        horarios: [
+            { dia: "Lunes", entrada: "08:00", salida: "16:00" },
+            { dia: "Martes", entrada: "08:00", salida: "16:00" },
+            { dia: "Miércoles", entrada: "08:00", salida: "16:00" },
+            { dia: "Jueves", entrada: "08:00", salida: "16:00" },
+            { dia: "Viernes", entrada: "08:00", salida: "15:00" },
+            { dia: "Sábado", entrada: "09:00", salida: "13:00" },
+            { dia: "Domingo", entrada: "-", salida: "-" }
+        ]
+    },
+    2: {
+        nombre: "María López",
+        horarios: [
+            { dia: "Lunes", entrada: "09:00", salida: "17:00" },
+            { dia: "Martes", entrada: "09:00", salida: "17:00" },
+            { dia: "Miércoles", entrada: "09:00", salida: "17:00" },
+            { dia: "Jueves", entrada: "09:00", salida: "17:00" },
+            { dia: "Viernes", entrada: "09:00", salida: "16:00" },
+            { dia: "Sábado", entrada: "-", salida: "-" },
+            { dia: "Domingo", entrada: "-", salida: "-" }
+        ]
+    },
+    3: {
+        nombre: "Carlos Ruiz",
+        horarios: [
+            { dia: "Lunes", entrada: "10:00", salida: "18:00" },
+            { dia: "Martes", entrada: "10:00", salida: "18:00" },
+            { dia: "Miércoles", entrada: "10:00", salida: "18:00" },
+            { dia: "Jueves", entrada: "10:00", salida: "18:00" },
+            { dia: "Viernes", entrada: "10:00", salida: "17:00" },
+            { dia: "Sábado", entrada: "-", salida: "-" },
+            { dia: "Domingo", entrada: "-", salida: "-" }
+        ]
+    }
+};
+
+function calcularHoras(entrada, salida) {
+    if (entrada === "-" || salida === "-") return 0;
+    const [h1, m1] = entrada.split(":").map(Number);
+    const [h2, m2] = salida.split(":").map(Number);
+    return (h2 + m2/60) - (h1 + m1/60);
+}
+
+function mostrarDatos() {
+    const id = document.getElementById('empleado').value;
+    const empleado = empleados[id];
+    document.getElementById('infoEmpleado').style.display = 'block';
+    document.getElementById('nombreEmpleado').textContent = empleado.nombre;
+    let total = 0;
+    let rows = '';
+    empleado.horarios.forEach(h => {
+        const horas = calcularHoras(h.entrada, h.salida);
+        total += horas;
+        rows += `<tr>
+            <td>${h.dia}</td>
+            <td>${h.entrada}</td>
+            <td>${h.salida}</td>
+            <td>${horas ? horas.toFixed(2) : '-'}</td>
+        </tr>`;
+    });
+    document.getElementById('tablaHorarios').innerHTML = rows;
+    document.getElementById('totalHoras').textContent = total.toFixed(2);
+}
+</script>
+</body>
+</html>

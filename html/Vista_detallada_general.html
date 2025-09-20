@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Vista Detallada General - Empleados</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background: #f9f9f9; }
+        h1, h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; background: #fff; }
+        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+        th { background: #eaeaea; }
+        .detalle-dia { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Resumen semanal de empleados</h1>
+    <button onclick="descargarPDF()" style="margin-left: 20px;">Descargar PDF</button>
+    <script>
+        function descargarPDF() {
+            alert('Funcionalidad de descarga de PDF aún no implementada.');
+        }
+    </script>
+    <p><strong>Semana:</strong> 10/06/2024 - 16/06/2024</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Empleado</th>
+                <th>Lunes</th>
+                <th>Martes</th>
+                <th>Miércoles</th>
+                <th>Jueves</th>
+                <th>Viernes</th>
+                <th>Sábado</th>
+                <th>Domingo</th>
+                <th>Total Horas</th>
+                <th>Pago por Hora</th>
+                <th>Pago Acumulado</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Juan Pérez</td>
+                <td>8</td>
+                <td>8</td>
+                <td>8</td>
+                <td>8</td>
+                <td>8</td>
+                <td>6</td>
+                <td>0</td>
+                <td>46</td>
+                <td>$50</td>
+                <td>$2,300</td>
+            </tr>
+            <tr>
+                <td>María López</td>
+                <td>7</td>
+                <td>7</td>
+                <td>7</td>
+                <td>7</td>
+                <td>7</td>
+                <td>5</td>
+                <td>0</td>
+                <td>40</td>
+                <td>$55</td>
+                <td>$2,200</td>
+            </tr>
+            <!-- Agrega más empleados aquí -->
+        </tbody>
+    </table>
+
+    <h2>Detalles por empleado</h2>
+
+    <div class="detalle-dia">
+        <h3>Juan Pérez</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Día</th>
+                    <th>Horas trabajadas</th>
+                    <th>Pago diario</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>10/06/2024</td><td>Lunes</td><td>8</td><td>$400</td></tr>
+                <tr><td>11/06/2024</td><td>Martes</td><td>8</td><td>$400</td></tr>
+                <tr><td>12/06/2024</td><td>Miércoles</td><td>8</td><td>$400</td></tr>
+                <tr><td>13/06/2024</td><td>Jueves</td><td>8</td><td>$400</td></tr>
+                <tr><td>14/06/2024</td><td>Viernes</td><td>8</td><td>$400</td></tr>
+                <tr><td>15/06/2024</td><td>Sábado</td><td>6</td><td>$300</td></tr>
+                <tr><td>16/06/2024</td><td>Domingo</td><td>0</td><td>$0</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="detalle-dia">
+        <h3>María López</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Día</th>
+                    <th>Horas trabajadas</th>
+                    <th>Pago diario</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>10/06/2024</td><td>Lunes</td><td>7</td><td>$385</td></tr>
+                <tr><td>11/06/2024</td><td>Martes</td><td>7</td><td>$385</td></tr>
+                <tr><td>12/06/2024</td><td>Miércoles</td><td>7</td><td>$385</td></tr>
+                <tr><td>13/06/2024</td><td>Jueves</td><td>7</td><td>$385</td></tr>
+                <tr><td>14/06/2024</td><td>Viernes</td><td>7</td><td>$385</td></tr>
+                <tr><td>15/06/2024</td><td>Sábado</td><td>5</td><td>$275</td></tr>
+                <tr><td>16/06/2024</td><td>Domingo</td><td>0</td><td>$0</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <!-- Agrega más detalles de empleados aquí -->
+</body>
+</html>

@@ -1,0 +1,23 @@
+### Crear un nuevo empleado
+POST http://localhost:3000/api/empleados
+Content-Type: application/json
+
+{
+  "nombre": "Juan Pérez",
+  "puesto": "Cajero",
+  "salario_hora": 50
+}
+
+### Registrar asistencia
+POST http://localhost:3000/api/asistencias
+Content-Type: application/json
+
+{
+  "empleado_id": 1,
+  "fecha": "2025-09-13",
+  "hora_entrada": "09:00:00",
+  "hora_salida": "17:00:00"
+}
+
+### Consultar historial de un empleado
+GET http://localhost:3000/api/asistencias/1

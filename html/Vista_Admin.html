@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - CRUD Empleados</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        h1 { color: #333; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f4f4f4; }
+        form { margin-bottom: 20px; }
+        input, button { padding: 6px; margin: 4px; }
+        .actions button { margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Administración de Empleados</h1>
+    <form id="empleadoForm">
+        <input type="hidden" id="editIndex">
+        <input type="text" id="nombre" placeholder="Nombre" required>
+        <input type="text" id="puesto" placeholder="Puesto" required>
+        <input type="email" id="correo" placeholder="Correo" required>
+        <input type="text" id="PagoxHora" placeholder="PagoxHora" required>
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancelarEdicion" style="display:none;">Cancelar</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Puesto</th>
+                <th>Correo</th>
+                <th>PagoxHora</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="empleadosTabla">
+            <!-- Filas de empleados aquí -->
+        </tbody>
+    </table>
+    <script>
+        let empleados = [
+            { nombre: "Juan Pérez", puesto: "Gerente", correo: "juan.perez@email.com", PagoxHora: 100 },
+            { nombre: "Ana López", puesto: "Cajera", correo: "ana.lopez@email.com", PagoxHora: 80 },
+            { nombre: "Carlos Ruiz", puesto: "Repartidor", correo: "carlos.ruiz@email.com", PagoxHora: 90 }
+        ];
+        const form = document.getElementById('empleadoForm');
+        const tabla = document.getElementById('empleadosTabla');
+        const cancelarBtn = document.getElementById('cancelarEdicion');
+        const editIndexInput = document.getElementById('editIndex');
+
+        function renderTabla() {
+            tabla.innerHTML = '';
+            empleados.forEach((emp, idx) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${emp.nombre}</td>
+                    <td>${emp.puesto}</td>
+                    <td>${emp.correo}</td>
+                    <td>${emp.PagoxHora}</td>
+                    <td class="actions">
+                        <button onclick="editarEmpleado(${idx})">Editar</button>
+                        <button onclick="eliminarEmpleado(${idx})">Eliminar</button>
+                    </td>
+                `;
+                tabla.appendChild(row);
+            });
+        }
+
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value.trim();
+            const puesto = document.getElementById('puesto').value.trim();
+            const correo = document.getElementById('correo').value.trim();
+            const PagoxHora = document.getElementById('PagoxHora').value.trim();
+            const editIndex = editIndexInput.value;
+
+            if (editIndex === '') {
+                empleados.push({ nombre, puesto, correo, PagoxHora });
+            } else {
+                empleados[editIndex] = { nombre, puesto, correo, PagoxHora };
+                editIndexInput.value = '';
+                cancelarBtn.style.display = 'none';
+                form.querySelector('button[type="submit"]').textContent = 'Guardar';
+            }
+            form.reset();
+            renderTabla();
+        };
+
+        window.editarEmpleado = function(idx) {
+            const emp = empleados[idx];
+            document.getElementById('nombre').value = emp.nombre;
+            document.getElementById('puesto').value = emp.puesto;
+            document.getElementById('correo').value = emp.correo;
+            document.getElementById('PagoxHora').value = emp.PagoxHora;
+            editIndexInput.value = idx;
+            cancelarBtn.style.display = '';
+            form.querySelector('button[type="submit"]').textContent = 'Actualizar';
+        };
+
+        window.eliminarEmpleado = function(idx) {
+            if (confirm('¿Seguro que deseas eliminar este empleado?')) {
+                empleados.splice(idx, 1);
+                renderTabla();
+            }
+        };
+
+        cancelarBtn.onclick = function() {
+            form.reset();
+            editIndexInput.value = '';
+            cancelarBtn.style.display = 'none';
+            form.querySelector('button[type="submit"]').textContent = 'Guardar';
+        };
+    renderTabla();
+    
+        
+    </script>
+</body>
+</html>

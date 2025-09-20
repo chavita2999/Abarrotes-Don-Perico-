@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Horas Trabajadas por Periodo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        label, input, button { margin: 5px; }
+    </style>
+</head>
+<body>
+    <h2>Horas Trabajadas por Periodo</h2>
+    <form id="periodoForm">
+        <label for="inicio">Fecha de inicio:</label>
+        <input type="date" id="inicio" name="inicio" required>
+        <label for="fin">Fecha de fin:</label>
+        <input type="date" id="fin" name="fin" required>
+        <button type="submit">Mostrar</button>
+        <button onclick="descargarPDF()" style="margin-left: 20px;">Descargar PDF</button>
+    </form>
+    <table id="tablaHoras">
+        <thead>
+            <tr>
+                <th>Trabajador</th>
+                <th>Horas Trabajadas</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Los datos se llenarán aquí -->
+
+        </tbody>
+    </table>
+    <script>
+        // Datos de ejemplo
+        const trabajadores = [
+            { nombre: "Juan Pérez", horas: [{fecha: "2024-06-01", horas: 8}, {fecha: "2024-06-02", horas: 7}] },
+            { nombre: "Ana López", horas: [{fecha: "2024-06-01", horas: 6}, {fecha: "2024-06-03", horas: 8}] },
+            { nombre: "Carlos Ruiz", horas: [{fecha: "2024-06-02", horas: 9}, {fecha: "2024-06-03", horas: 7}] }
+        ];
+
+        // Tarifa por hora de referencia (puedes cambiarla)
+        const tarifaPorHora = 50; // pesos mexicanos
+
+        document.getElementById('periodoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const inicio = document.getElementById('inicio').value;
+            const fin = document.getElementById('fin').value;
+            const tbody = document.querySelector('#tablaHoras tbody');
+            tbody.innerHTML = '';
+
+            // Para la tabla de pagos
+            let pagosHTML = `
+                <table id="tablaPagos" style="border-collapse: collapse; margin-left: 30px;">
+                    <thead>
+                        <tr>
+                            <th>Trabajador</th>
+                            <th>Total a Pagar</th>
+                            <th>Referencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            trabajadores.forEach(trabajador => {
+                const totalHoras = trabajador.horas
+                    .filter(h => h.fecha >= inicio && h.fecha <= fin)
+                    .reduce((sum, h) => sum + h.horas, 0);
+                if (totalHoras > 0) {
+                    const row = `<tr><td>${trabajador.nombre}</td><td>${totalHoras}</td></tr>`;
+                    tbody.innerHTML += row;
+
+                    const totalPagar = totalHoras * tarifaPorHora;
+                    pagosHTML += `<tr>
+                        <td>${trabajador.nombre}</td>
+                        <td>$${totalPagar.toFixed(2)}</td>
+                        <td>${totalHoras} horas x $${tarifaPorHora}/hora</td>
+                    </tr>`;
+                }
+            });
+
+            pagosHTML += `</tbody></table>`;
+
+            // Elimina tabla previa si existe
+            const tablaPagosExistente = document.getElementById('tablaPagos');
+            if (tablaPagosExistente) tablaPagosExistente.remove();
+
+            // Inserta la tabla de pagos al lado de la tabla de horas
+            document.getElementById('tablaHoras').insertAdjacentHTML('afterend', pagosHTML);
+        });
+
+        // Muestra inicial de datos al cargar la página (opcional)
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('inicio').value = "2024-06-01";
+            document.getElementById('fin').value = "2024-06-03";
+            document.getElementById('periodoForm').dispatchEvent(new Event('submit'));
+        });
+
+        // Agrega una tabla detallada de personas y horas trabajadas por día
+        function mostrarDetallePorDia(inicio, fin) {
+            // Elimina tabla previa si existe
+            const tablaExistente = document.getElementById('tablaDetalle');
+            if (tablaExistente) tablaExistente.remove();
+
+            // Crear tabla
+            const tabla = document.createElement('table');
+            tabla.id = 'tablaDetalle';
+            tabla.style.marginTop = '30px';
+
+            // Encabezado
+            const thead = document.createElement('thead');
+            const trHead = document.createElement('tr');
+            trHead.innerHTML = '<th>Trabajador</th><th>Fecha</th><th>Horas Trabajadas</th>';
+            thead.appendChild(trHead);
+            tabla.appendChild(thead);
+
+            // Cuerpo
+            const tbody = document.createElement('tbody');
+            trabajadores.forEach(trabajador => {
+                trabajador.horas
+                    .filter(h => h.fecha >= inicio && h.fecha <= fin)
+                    .forEach(h => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${trabajador.nombre}</td><td>${h.fecha}</td><td>${h.horas}</td>`;
+                        tbody.appendChild(tr);
+                    });
+            });
+            tabla.appendChild(tbody);
+
+            // Agrega la tabla al body
+            document.body.appendChild(tabla);
+        }
+
+        // Llama a la función de detalle al enviar el formulario
+        document.getElementById('periodoForm').addEventListener('submit', function() {
+            const inicio = document.getElementById('inicio').value;
+            const fin = document.getElementById('fin').value;
+            mostrarDetallePorDia(inicio, fin);
+        });
+    </script>
+</body>
+</html>
