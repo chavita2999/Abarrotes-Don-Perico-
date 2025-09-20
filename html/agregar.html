@@ -38,5 +38,15 @@
             <button type="submit">Agregar Empleado</button>
         </form>
     </div>
+    function cargarEmpleados() {
+    fetch('http://localhost:5000/empleados')
+        .then(res => res.json())
+        .then(data => {
+            empleados = data;
+            renderTabla();
+        });
+}
+
+cargarEmpleados();
 </body>
 </html>
