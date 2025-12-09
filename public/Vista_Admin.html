@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=.7">
+    <title>Administración Empleados</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f8f8f8;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: #fff;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 4px 9px;
+            text-align: center;
+        }
+
+        th {
+            background: #f0f0f0;
+        }
+
+        tr:nth-child(even) {
+            background: #f7f7f7;
+        }
+
+        .btn {
+            padding: 4px 14px;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: inline-block;
+            line-height: normal;
+            text-align: center;
+            margin-top: 8px;
+            margin-left: 3px;
+        }
+
+        .btn:hover {
+            background: #4caf50;
+            transition: background 0.2s;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+
+        input,
+        button {
+            padding: 6px;
+            margin: 4px;
+        }
+
+        .actions button {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Administración de Empleados</h1>
+    <form id="empleadoForm">
+        <input type="hidden" id="editIndex">
+        <input type="text" id="nombre" placeholder="Nombre" required>
+        <input type="text" id="telefono" placeholder="Teléfono" required>
+        <input type="text" id="hor_entrada" placeholder="Hora de Entrada" required>
+        <input type="text" id="hor_salida" placeholder="Hora de Salida" required>
+        <input type="text" id="PagoxHora" placeholder="Pago por hora" required>
+        <button class="btn" type="submit">Guardar</button>
+        <a href="./home.html" class="btn" style="margin-right: 15px;">Regresar a inicio</a>
+        <button type="button" id="cancelarEdicion" style="display:none;">Cancelar</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Hora de Entrada</th>
+                <th>Hora de Salida</th>
+                <th>Pago por hora</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="empleadosTabla">
+            <!-- Filas de empleados aquí -->
+        </tbody>
+    </table>
+       <script src="/js/api.js"></script>
+   <script>
+        let empleados = [];
+        const form = document.getElementById('empleadoForm');
+        const tabla = document.getElementById('empleadosTabla');
+        const cancelarBtn = document.getElementById('cancelarEdicion');
+        const editIndexInput = document.getElementById('editIndex');
+
+        // Cargar empleados desde la base de datos
+        async function cargarEmpleados() {
+            empleados = await obtenerEmpleados();
+            renderTabla();
+        }
+
+        function renderTabla() {
+            tabla.innerHTML = '';
+            empleados.forEach((emp, idx) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${emp.nombre} ${emp.apellido}</td>
+                    <td>${emp.telefono || 'N/A'}</td>
+                    <td>${emp.horario_entrada}</td>
+                    <td>${emp.horario_salida}</td>
+                    <td>$${emp.pago_x_hora}</td>
+                    <td class="actions">
+                        <button onclick="editarEmpleado(${emp.id_empleado})">Editar</button>
+                        <button onclick="eliminarEmpleadoDB(${emp.id_empleado})">Eliminar</button>
+                    </td>
+                `;
+                tabla.appendChild(row);
+            });
+        }
+
+        form.onsubmit = async function (e) {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            const hor_entrada = document.getElementById('hor_entrada').value.trim();
+            const hor_salida = document.getElementById('hor_salida').value.trim();
+            const PagoxHora = parseFloat(document.getElementById('PagoxHora').value.trim());
+            const editIndex = editIndexInput.value;
+
+            // Separar nombre en nombre y apellido
+            const nombreParts = nombre.split(' ');
+            const nombreSolo = nombreParts[0];
+            const apellido = nombreParts.slice(1).join(' ') || nombreSolo;
+
+            const empleadoData = {
+                nombre: nombreSolo,
+                apellido: apellido,
+                telefono: telefono,
+                pago_x_hora: PagoxHora,
+                horario_entrada: hor_entrada,
+                horario_salida: hor_salida
+            };
+
+            if (editIndex === '') {
+                // Crear nuevo empleado
+                await crearEmpleado(empleadoData);
+                alert('Empleado creado correctamente');
+            } else {
+                // Actualizar empleado existente
+                await actualizarEmpleado(editIndex, empleadoData);
+                alert('Empleado actualizado correctamente');
+                editIndexInput.value = '';
+                cancelarBtn.style.display = 'none';
+                form.querySelector('button[type="submit"]').textContent = 'Guardar';
+            }
+            
+            form.reset();
+            cargarEmpleados();
+        };
+
+        window.editarEmpleado = function (id) {
+            const emp = empleados.find(e => e.id_empleado === id);
+            if (!emp) return;
+
+            document.getElementById('nombre').value = `${emp.nombre} ${emp.apellido}`;
+            document.getElementById('telefono').value = emp.telefono;
+            document.getElementById('hor_entrada').value = emp.horario_entrada;
+            document.getElementById('hor_salida').value = emp.horario_salida;
+            document.getElementById('PagoxHora').value = emp.pago_x_hora;
+            editIndexInput.value = id;
+            cancelarBtn.style.display = '';
+            form.querySelector('button[type="submit"]').textContent = 'Actualizar';
+        };
+
+        window.eliminarEmpleadoDB = async function (id) {
+            if (confirm('¿Seguro que deseas eliminar este empleado?')) {
+                await eliminarEmpleado(id);
+                alert('Empleado eliminado');
+                cargarEmpleados();
+            }
+        };
+
+        cancelarBtn.onclick = function () {
+            form.reset();
+            editIndexInput.value = '';
+            cancelarBtn.style.display = 'none';
+            form.querySelector('button[type="submit"]').textContent = 'Guardar';
+        };
+
+        // Cargar empleados al iniciar
+        cargarEmpleados();
+    </script>
+</body>
+</html>
+</body>

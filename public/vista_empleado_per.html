@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=.8" />
+    <title>Vista por Periodos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f9f9f9;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        .filter {
+            margin-bottom: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: #fff;
+            margin-bottom: 40px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px 9px;
+            text-align: center;
+        }
+
+        th {
+            background: #f0f0f0;
+        }
+
+        tr:nth-child(even) {
+            background: #f7f7f7;
+        }
+
+        .btn {
+            padding: 4px 14px;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: inline-block;
+            line-height: normal;
+            text-align: center;
+            margin-top: 8px;
+            margin-left: 3px;
+        }
+
+        .btn:hover {
+            background: #4caf50;
+            transition: background 0.2s;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Resumen por periodo de Empleados</h2>
+    <div class="filter">
+        <label for="fechaInicio">Desde: </label>
+        <input type="date" id="fechaInicio" />
+        <label for="fechaFin">Hasta: </label>
+        <input type="date" id="fechaFin" />
+        <button class="btn" onclick="filtrar()">Filtrar</button>
+        <button class="btn" onclick="resetear()" style="margin-right: 15px;">Resetear</button>
+        <button class="btn" onclick="descargarPDF()" style="margin-right: 15px;">Descargar PDF</button>
+        <a href="./home.html" class="btn">Regresar a inicio</a>
+    </div>
+
+    <div id="tablasPorEmpleado"></div>
+
+<!-- Primero api.js -->
+    <script src="/js/api.js"></script>
+    
+    <!-- Código específico -->
+    <script>
+        let empleados = {};
+
+        async function cargarEmpleadosDB() {
+            console.log('🔄 Cargando empleados...');
+            const listaEmpleados = await obtenerEmpleados();
+            
+            if (!listaEmpleados || listaEmpleados.length === 0) {
+                console.error('❌ No hay empleados');
+                document.getElementById('tablasPorEmpleado').innerHTML = 
+                    '<p style="text-align:center; color:#999;">No hay empleados en la base de datos</p>';
+                return;
+            }
+            
+            for (const emp of listaEmpleados) {
+                empleados[emp.id_empleado] = {
+                    nombre: `${emp.nombre} ${emp.apellido}`,
+                    pagoXhora: emp.pago_x_hora,
+                    horarios: []
+                };
+            }
+            
+            // Cargar asistencias para cada empleado
+            for (const id in empleados) {
+                console.log(`   Cargando asistencias para ID ${id}...`);
+                const asistencias = await obtenerAsistencias({ id_empleado: id });
+                empleados[id].horarios = asistencias.map(a => ({
+                    fecha: a.fecha,
+                    entrada: formatearHora(a.hora_entrada),
+                    salida: formatearHora(a.hora_salida)
+                }));
+            }
+            
+            console.log('✅ Datos cargados');
+            mostrarTablas();
+        }
+
+        function calcularHoras(entrada, salida) {
+            if (entrada === "-" || salida === "-" || entrada === "Sin registro" || salida === "Sin registro") return 0;
+            const [h1, m1] = entrada.split(":").map(Number);
+            const [h2, m2] = salida.split(":").map(Number);
+            if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return 0;
+            return (h2 + m2 / 60) - (h1 + m1 / 60);
+        }
+
+        function generarTablaEmpleado(empleado) {
+            const horarios = empleado.horarios;
+            const pagoXhora = empleado.pagoXhora;
+            let totalHoras = 0;
+            let totalPago = 0;
+
+            let filas = horarios.map(h => {
+                return {
+                    fecha: h.fecha,
+                    entrada: h.entrada,
+                    salida: h.salida,
+                    horas: calcularHoras(h.entrada, h.salida)
+                };
+            });
+
+            const inicio = document.getElementById('fechaInicio').value;
+            const fin = document.getElementById('fechaFin').value;
+            if (inicio) filas = filas.filter(f => f.fecha >= inicio);
+            if (fin) filas = filas.filter(f => f.fecha <= fin);
+
+            let filasHTML = '';
+            filas.forEach(f => {
+                const pagoDia = f.horas * pagoXhora;
+                totalHoras += f.horas;
+                totalPago += pagoDia;
+                filasHTML += `
+                    <tr>
+                        <td>${formatearFecha(f.fecha)}</td>
+                        <td>${f.entrada}</td>
+                        <td>${f.salida}</td>
+                        <td>${f.horas.toFixed(1)}</td>
+                        <td>$${pagoDia.toFixed(0)}</td>
+                    </tr>`;
+            });
+
+            if (filas.length === 0) {
+                filasHTML = `<tr><td colspan="5">No hay registros en este periodo</td></tr>`;
+            }
+
+            return `
+                <h3>${empleado.nombre}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora de Entrada</th>
+                            <th>Hora de Salida</th>
+                            <th>Horas al Día</th>
+                            <th>Pago del Día</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filasHTML}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total</th>
+                            <th></th>
+                            <th></th>
+                            <th>${totalHoras.toFixed(1)}</th>
+                            <th>$${totalPago.toFixed(0)}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+        }
+
+        function mostrarTablas() {
+            const contenedor = document.getElementById('tablasPorEmpleado');
+            contenedor.innerHTML = '';
+            for (const key in empleados) {
+                contenedor.innerHTML += generarTablaEmpleado(empleados[key]);
+            }
+        }
+
+        function filtrar() {
+            mostrarTablas();
+        }
+
+        function resetear() {
+            document.getElementById('fechaInicio').value = '';
+            document.getElementById('fechaFin').value = '';
+            mostrarTablas();
+        }
+
+        function descargarPDF() {
+            alert('Función de descarga de PDF aún no implementada.');
+        }
+
+        // Cargar al iniciar
+        console.log('📄 vista_empleado_per.html cargada');
+        cargarEmpleadosDB();
+    </script>
+</body>
+</html>
+    
+    <script src="/js/api.js"></script>
+</body>
+</html>

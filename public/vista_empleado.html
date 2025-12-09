@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=.9">
+    <title>Vista Individual del Empleado</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f8f8f8;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+        }
+
+        h2 {
+            color: #2c3e50;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #fff;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px 9px;
+            text-align: center;
+        }
+
+        th {
+            background: #f0f0f0;
+        }
+
+        .btn {
+            padding: 4px 14px;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: .9rem;
+            display: inline-block;
+            line-height: normal;
+            text-align: center;
+            margin-top: 8px;
+            margin-left: 3px;
+        }
+
+
+        .btn:hover {
+            background: #4CAF50;
+            transition: background .2s;
+        }
+
+        .info {
+            margin-top: 20px;
+        }
+
+        label {
+            color: #2c3e50;
+        }
+
+        script {
+            color: #2c3e50;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f7f7f7;
+        }
+
+        tbody tr:last-child {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Vista Individual del Empleado</h2>
+        <div>
+            <label for="empleado">Selecciona un empleado:</label>
+            <select id="empleado">
+                <option value="1">Juan Pérez</option>
+                <option value="2">María López</option>
+                <option value="3">Carlos Ruiz</option>
+            </select>
+            <button class="btn" onclick="mostrarDatos()">Ver Horarios</button>
+            <a href="./home.html" class="btn">Regresar a inicio</a>
+
+        </div>
+        <div class="info" id="infoEmpleado" style="display:none;">
+            <h3 id="nombreEmpleado"></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Hora de Entrada</th>
+                        <th>Hora de Salida</th>
+                        <th>Horas al Día</th>
+                        <th>Pago del Día</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaHorarios"></tbody>
+            </table>
+
+        </div>
+         <script src="/js/api.js"></script>
+       <script>
+            let empleados = {};
+
+            // Cargar empleados desde la BD
+            async function cargarEmpleadosSelect() {
+                const listaEmpleados = await obtenerEmpleados();
+                
+                if (!listaEmpleados) {
+                    console.error("No se pudieron cargar los empleados. Verifique la conexión con el servidor.");
+                    return;
+                }
+
+                const select = document.getElementById('empleado');
+                select.innerHTML = '';
+                
+                listaEmpleados.forEach(emp => {
+                    const option = document.createElement('option');
+                    option.value = emp.id_empleado;
+                    option.textContent = `${emp.nombre} ${emp.apellido}`;
+                    select.appendChild(option);
+                    
+                    // Guardar en objeto para usar después
+                    empleados[emp.id_empleado] = {
+                        nombre: `${emp.nombre} ${emp.apellido}`,
+                        pagoXhora: emp.pago_x_hora,
+                        horarios: []
+                    };
+                });
+            }
+
+            function calcularHoras(entrada, salida) {
+                if (!entrada || !salida) return 0;
+                // Espera formato "HH:MM:SS" o "HH:MM"
+                const [he, me] = entrada.split(':').map(Number);
+                const [hs, ms] = salida.split(':').map(Number);
+                const inicio = new Date();
+                inicio.setHours(he || 0, me || 0, 0, 0);
+                const fin = new Date();
+                fin.setHours(hs || 0, ms || 0, 0, 0);
+                const diffMs = fin - inicio;
+                if (diffMs <= 0) return 0;
+                return diffMs / (1000 * 60 * 60);
+            }
+
+            async function mostrarDatos() {
+                const id = document.getElementById('empleado').value;
+                
+                // Obtener asistencias del empleado
+                const asistencias = await obtenerAsistencias({ id_empleado: id });
+                
+                if (!asistencias || !empleados[id]) return;
+                
+                const empleado = empleados[id];
+                const pagoXhora = empleado.pagoXhora;
+
+                document.getElementById('infoEmpleado').style.display = 'block';
+                document.getElementById('nombreEmpleado').textContent = empleado.nombre;
+
+                let totalHoras = 0;
+                let totalPago = 0;
+                let rows = '';
+
+                asistencias.forEach(h => {
+                    const horas = (typeof h.horas_trabajadas === 'number' && !isNaN(h.horas_trabajadas))
+                        ? h.horas_trabajadas
+                        : calcularHoras(h.hora_entrada, h.hora_salida);
+                    const pago = horas * pagoXhora;
+                    totalHoras += horas;
+                    totalPago += pago;
+
+                    rows += `<tr>
+                        <td>${formatearFecha(h.fecha)}</td>
+                        <td>${formatearHora(h.hora_entrada)}</td>
+                        <td>${formatearHora(h.hora_salida)}</td>
+                        <td>${horas ? horas.toFixed(1) : '-'}</td>
+                        <td>${horas ? `$${pago.toFixed(0)}` : '-'}</td>
+                    </tr>`;
+                });
+
+                if (asistencias.length === 0) {
+                    rows = '<tr><td colspan="5">No hay registros de asistencia</td></tr>';
+                }
+
+                // Agregar fila de total
+                rows += `<tr>
+                    <td colspan="1" style="text-align: left;"><strong>Total</strong></td>
+                    <td><strong></strong></td>
+                    <td><strong></strong></td>
+                    <td><strong>${totalHoras.toFixed(1)}</strong></td>
+                    <td><strong>$${totalPago.toFixed(0)}</strong></td>
+                </tr>`;
+
+                document.getElementById('tablaHorarios').innerHTML = rows;
+            }
+
+            // Cargar empleados al iniciar
+            cargarEmpleadosSelect();
+        </script>
+        
+       
+
+
+    </div>
+</body>
+</html>    
