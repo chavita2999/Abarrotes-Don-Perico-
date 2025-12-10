@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horas Trabajadas por Periodo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f8f8f8;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        label,
+        input,
+        button {
+            margin: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Horas Trabajadas por Periodo</h2>
+    <form id="periodoForm">
+        <label for="inicio">Fecha de inicio:</label>
+        <input type="date" id="inicio" name="inicio" required>
+        <label for="fin">Fecha de fin:</label>
+        <input type="date" id="fin" name="fin" required>
+        <button type="submit">Mostrar</button>
+        <button onclick="descargarPDF()" style="margin-left: 20px;">Descargar PDF</button>
+    </form>
+    <table id="tablaHoras">
+        <thead>
+            <tr>
+                <th>Trabajador</th>
+                <th>Horas Trabajadas</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Los datos se llenarán aquí -->
+
+        </tbody>
+    </table>
+<!-- Primero api.js -->
+    <script src="/js/api.js"></script>
+    
+    <!-- Código específico -->
+    <script>
+        let trabajadores = [];
+        const tarifaPorHora = 50;
+
+        async function cargarTrabajadores() {
+            console.log('🔄 Cargando trabajadores...');
+            const empleados = await obtenerEmpleados();
+            trabajadores = [];
+            
+            if (!empleados || empleados.length === 0) {
+                console.error('❌ No hay empleados');
+                return;
+            }
+            
+            for (const emp of empleados) {
+                console.log(`   Cargando asistencias para ${emp.nombre}...`);
+                const asistencias = await obtenerAsistencias({ id_empleado: emp.id_empleado });
+                
+                trabajadores.push({
+                    nombre: `${emp.nombre} ${emp.apellido}`,
+                    horas: asistencias.map(a => ({
+                        fecha: a.fecha,
+                        horas: a.horas_trabajadas || 0
+                    }))
+                });
+            }
+            
+            console.log(`✅ ${trabajadores.length} trabajadores cargados`);
+        }
+
+        document.getElementById('periodoForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const inicio = document.getElementById('inicio').value;
+            const fin = document.getElementById('fin').value;
+            const tbody = document.querySelector('#tablaHoras tbody');
+            tbody.innerHTML = '';
+
+            if (trabajadores.length === 0) {
+                await cargarTrabajadores();
+            }
+
+            let pagosHTML = `
+                <table id="tablaPagos" style="border-collapse: collapse; margin-left: 30px;">
+                    <thead>
+                        <tr>
+                            <th>Trabajador</th>
+                            <th>Total a Pagar</th>
+                            <th>Referencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            trabajadores.forEach(trabajador => {
+                const totalHoras = trabajador.horas
+                    .filter(h => h.fecha >= inicio && h.fecha <= fin)
+                    .reduce((sum, h) => sum + h.horas, 0);
+                    
+                if (totalHoras > 0) {
+                    const row = `<tr><td>${trabajador.nombre}</td><td>${totalHoras.toFixed(2)}</td></tr>`;
+                    tbody.innerHTML += row;
+
+                    const totalPagar = totalHoras * tarifaPorHora;
+                    pagosHTML += `<tr>
+                        <td>${trabajador.nombre}</td>
+                        <td>$${totalPagar.toFixed(2)}</td>
+                        <td>${totalHoras.toFixed(2)} horas x $${tarifaPorHora}/hora</td>
+                    </tr>`;
+                }
+            });
+
+            if (tbody.innerHTML === '') {
+                tbody.innerHTML = '<tr><td colspan="2">No hay registros en este periodo</td></tr>';
+            }
+
+            pagosHTML += `</tbody></table>`;
+
+            const tablaPagosExistente = document.getElementById('tablaPagos');
+            if (tablaPagosExistente) tablaPagosExistente.remove();
+
+            document.getElementById('tablaHoras').insertAdjacentHTML('afterend', pagosHTML);
+            mostrarDetallePorDia(inicio, fin);
+        });
+
+        async function mostrarDetallePorDia(inicio, fin) {
+            const tablaExistente = document.getElementById('tablaDetalle');
+            if (tablaExistente) tablaExistente.remove();
+
+            const tabla = document.createElement('table');
+            tabla.id = 'tablaDetalle';
+            tabla.style.marginTop = '30px';
+
+            const thead = document.createElement('thead');
+            const trHead = document.createElement('tr');
+            trHead.innerHTML = '<th>Trabajador</th><th>Fecha</th><th>Horas Trabajadas</th>';
+            thead.appendChild(trHead);
+            tabla.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            
+            trabajadores.forEach(trabajador => {
+                trabajador.horas
+                    .filter(h => h.fecha >= inicio && h.fecha <= fin)
+                    .forEach(h => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${trabajador.nombre}</td>
+                            <td>${formatearFecha(h.fecha)}</td>
+                            <td>${h.horas.toFixed(2)}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+            });
+            
+            tabla.appendChild(tbody);
+            document.body.appendChild(tabla);
+        }
+
+        function descargarPDF() {
+            alert('Funcionalidad de descarga de PDF aún no implementada.');
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('📄 Periodos.html cargada');
+            await cargarTrabajadores();
+            
+            const hoy = new Date();
+            const hace7dias = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('inicio').value = hace7dias.toISOString().split('T')[0];
+            document.getElementById('fin').value = hoy.toISOString().split('T')[0];
+            
+            document.getElementById('periodoForm').dispatchEvent(new Event('submit'));
+        });
+    </script>
+</body>
+</html>

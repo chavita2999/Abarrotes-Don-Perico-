@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=.9" />
+    <title>Vista Detallada General</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f9f9f9;
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: #fff;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px 9px;
+            text-align: center;
+        }
+
+        th {
+            background: #eaeaea;
+        }
+
+        .detalle-dia {
+            margin-bottom: 20px;
+        }
+
+        .container {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 4px 14px;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: inline-block;
+            line-height: normal;
+            text-align: center;
+            margin-top: 8px;
+            margin-left: 3px;
+        }
+
+        .btn:hover {
+            background: #4caf50;
+            transition: background 0.2s;
+        }
+
+        
+        th {
+            background: #f0f0f0;
+        }
+
+        tr:nth-child(even) {
+            background: #f7f7f7;
+        }
+
+        
+        tbody tr:last-child {
+            background-color: #f0f0f0;
+        }
+        
+        /* Para que la tabla principal tenga scroll horizontal en móviles */
+        .table-container {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Resumen semanal de empleados</h1>
+
+    <script>
+        function descargarPDF() {
+            alert('Funcionalidad de descarga de PDF aún no implementada.');
+        }
+    </script>
+    <div class="container">
+        <label  style="margin-right: 15px;"><strong>Semana:</strong> 10/06/2024 - 16/06/2024</label>
+        <button class="btn" onclick="descargarPDF()">Descargar PDF</button>
+        <a href="./home.html" class="btn" style="margin-left: 15px;">Regresar a inicio</a>
+    </div>
+
+    <div class="table-container">
+        <table id="tabla-resumen">
+            <thead>
+                <tr>
+                    <th>Empleado</th>
+                    <th>Total Horas</th>
+                    <th>Pago por Hora</th>
+                    <th>Pago Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Se llenará con JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Detalles por empleado</h2>
+    <div id="detalles-empleados">
+        <!-- Se llenará con JS -->
+    </div>
+
+<!-- Primero cargar api.js -->
+    <script src="/js/api.js"></script>
+    
+    <!-- Después el código de esta página -->
+    <script>
+        let empleados = {};
+        const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        async function cargarDatosEmpleados() {
+            console.log('🔄 Cargando datos de empleados...');
+            const listaEmpleados = await obtenerEmpleados();
+            
+            if (!listaEmpleados || listaEmpleados.length === 0) {
+                console.error('❌ No se obtuvieron empleados');
+                alert('No hay empleados en la base de datos');
+                return;
+            }
+            
+            console.log(`✅ ${listaEmpleados.length} empleados obtenidos`);
+            
+            for (const emp of listaEmpleados) {
+                // Obtener asistencias de la última semana
+                const hoy = new Date();
+                const hace7dias = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000);
+                
+                const fechaFin = hoy.toISOString().split('T')[0];
+                const fechaInicio = hace7dias.toISOString().split('T')[0];
+                
+                console.log(`   Cargando asistencias para ${emp.nombre} ${emp.apellido}...`);
+                const asistencias = await obtenerAsistencias({ 
+                    id_empleado: emp.id_empleado,
+                    fecha_inicio: fechaInicio,
+                    fecha_fin: fechaFin
+                });
+                
+                empleados[emp.id_empleado] = {
+                    nombre: `${emp.nombre} ${emp.apellido}`,
+                    pagoXhora: emp.pago_x_hora,
+                    horarios: asistencias.map(a => ({
+                        fecha: a.fecha,
+                        entrada: formatearHora(a.hora_entrada),
+                        salida: formatearHora(a.hora_salida)
+                    }))
+                };
+            }
+            
+            console.log('✅ Datos cargados, generando tablas...');
+            generarResumen();
+            generarDetalles();
+        }
+
+        function calcularHoras(entrada, salida) {
+            if (!entrada || !salida || entrada === "Sin registro" || salida === "Sin registro") return 0;
+            
+            const [h1, m1] = entrada.split(':').map(Number);
+            const [h2, m2] = salida.split(':').map(Number);
+            
+            if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return 0;
+            
+            let minutosTrabajados = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (minutosTrabajados < 0) return 0;
+            return minutosTrabajados / 60;
+        }
+
+        function formatoMoneda(num) {
+            return '$' + num.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function generarResumen() {
+            const tbody = document.querySelector('#tabla-resumen tbody');
+            if (!tbody) {
+                console.error('❌ No se encontró tabla-resumen');
+                return;
+            }
+            
+            tbody.innerHTML = '';
+
+            let totalEmpleados = 0;
+            for (const id in empleados) {
+                totalEmpleados++;
+                const emp = empleados[id];
+                let totalHoras = 0;
+                
+                emp.horarios.forEach(h => {
+                    totalHoras += calcularHoras(h.entrada, h.salida);
+                });
+
+                const pagoAcumulado = totalHoras * emp.pagoXhora;
+
+                const tr = document.createElement('tr');
+                
+                const tdNombre = document.createElement('td');
+                tdNombre.textContent = emp.nombre;
+                tr.appendChild(tdNombre);
+
+                const tdTotal = document.createElement('td');
+                tdTotal.textContent = totalHoras.toFixed(2);
+                tr.appendChild(tdTotal);
+
+                const tdPagoHora = document.createElement('td');
+                tdPagoHora.textContent = formatoMoneda(emp.pagoXhora);
+                tr.appendChild(tdPagoHora);
+
+                const tdPagoTotal = document.createElement('td');
+                tdPagoTotal.textContent = formatoMoneda(pagoAcumulado);
+                tr.appendChild(tdPagoTotal);
+
+                tbody.appendChild(tr);
+            }
+            
+            if (totalEmpleados === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay datos para mostrar</td></tr>';
+            }
+            
+            console.log(`✅ Resumen generado para ${totalEmpleados} empleados`);
+        }
+
+        function generarDetalles() {
+            const contenedor = document.getElementById('detalles-empleados');
+            if (!contenedor) {
+                console.error('❌ No se encontró detalles-empleados');
+                return;
+            }
+            
+            contenedor.innerHTML = '';
+
+            for (const id in empleados) {
+                const emp = empleados[id];
+
+                const div = document.createElement('div');
+                div.classList.add('detalle-dia');
+
+                const h3 = document.createElement('h3');
+                h3.textContent = emp.nombre;
+                div.appendChild(h3);
+
+                const table = document.createElement('table');
+
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Día</th>
+                        <th>Horas al Día</th>
+                        <th>Pago del Día</th>
+                    </tr>`;
+                table.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+
+                let totalHoras = 0;
+                let totalPago = 0;
+
+                if (emp.horarios.length === 0) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td colspan="4" style="text-align:center;">Sin registros de asistencia</td>';
+                    tbody.appendChild(tr);
+                } else {
+                    emp.horarios.forEach(horario => {
+                        const tr = document.createElement('tr');
+                        const fecha = new Date(horario.fecha + 'T00:00:00');
+                        const diaNombre = diasSemana[fecha.getDay()];
+
+                        const horas = calcularHoras(horario.entrada, horario.salida);
+                        const pagoDia = horas * emp.pagoXhora;
+
+                        totalHoras += horas;
+                        totalPago += pagoDia;
+
+                        tr.innerHTML = `
+                            <td>${formatearFecha(horario.fecha)}</td>
+                            <td>${diaNombre}</td>
+                            <td>${horas.toFixed(2)}</td>
+                            <td>${formatoMoneda(pagoDia)}</td>
+                        `;
+
+                        tbody.appendChild(tr);
+                    });
+
+                    // Agregar fila de totales
+                    const trTotal = document.createElement('tr');
+                    trTotal.innerHTML = `
+                        <td colspan="1" style="text-align: center;"><strong>Total</strong></td>
+                        <td><strong></strong></td>
+                        <td><strong>${totalHoras.toFixed(2)}</strong></td>
+                        <td><strong>${formatoMoneda(totalPago)}</strong></td>
+                    `;
+                    tbody.appendChild(trTotal);
+                }
+
+                table.appendChild(tbody);
+                div.appendChild(table);
+
+                contenedor.appendChild(div);
+            }
+            
+            console.log('✅ Detalles generados');
+        }
+
+        function descargarPDF() {
+            alert('Funcionalidad de descarga de PDF aún no implementada.');
+        }
+
+        // Cargar datos al iniciar la página
+        console.log('📄 Vista_detallada_general.html cargada');
+        cargarDatosEmpleados();
+    </script>
+</body>
+</html>
